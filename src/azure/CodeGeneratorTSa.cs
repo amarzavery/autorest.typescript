@@ -80,5 +80,10 @@ namespace AutoRest.TypeScript.Azure
                 await Write(webpackConfig, Path.Combine("../", "webpack.config.js"));
             }
         }
+
+        public override string GenerateSample(bool isolateSnippet, CodeModel cm, MethodGroup g, Method m, string exampleName, AutoRest.Core.Model.XmsExtensions.Example example)
+        {
+            return base.GenerateSample(isolateSnippet, cm, g, m, exampleName, example);
+        }
     }
 }
