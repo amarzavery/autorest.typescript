@@ -22,7 +22,7 @@ describe('typescript', function () {
                     result.id.should.equal(2);
                     result.name.should.equal('abc');
                     result.color.should.equal('YELLOW');
-                    testClient.basic.putValid({ 'id': 2, 'name': 'abc', color: 'Magenta' }, function (error, result) {
+                    testClient.basic.putValid({ 'id': 2, 'name': 'abc', color: autoRestComplexTestService_1.AutoRestComplexTestServiceModels.CMYKColors.MAGENTA }, function (error, result) {
                         should.not.exist(error);
                         done();
                     });
@@ -360,6 +360,56 @@ describe('typescript', function () {
                     should.exist(error);
                     error.message.should.containEql('birthday');
                     error.message.should.containEql('cannot be null or undefined');
+                    done();
+                });
+            });
+            var rawSalmon = {
+                "species": "king",
+                "length": 1,
+                "siblings": [
+                    {
+                        "species": "predator",
+                        "length": 20,
+                        "fishtype": "shark",
+                        "age": 6,
+                        "birthday": new Date("2012-01-05T01:00:00.000Z")
+                    },
+                    {
+                        "species": "dangerous",
+                        "length": 10,
+                        "fishtype": "sawshark",
+                        "age": 105,
+                        "birthday": new Date("1900-01-05T01:00:00.000Z"),
+                        "picture": new Buffer([255, 255, 255, 255, 254])
+                    },
+                    {
+                        "species": "scary",
+                        "length": 30,
+                        "fishtype": "goblin",
+                        "age": 1,
+                        "birthday": new Date("2015-08-08T00:00:00.000Z"),
+                        "jawsize": 5
+                    }
+                ],
+                "fishtype": "smart_salmon",
+                "location": "alaska",
+                "iswild": true
+            };
+            // Still need to support additionalProperties: true.
+            //Today Autorest converts additionalProperties: <boolean value> into a dictionary all the time.
+            it('should get complicated polymorphic types', function (done) {
+                testClient.polymorphism.getComplicated(function (err, result, req, res) {
+                    should.not.exist(err);
+                    assert.deepEqual(result, rawSalmon);
+                    done();
+                });
+            });
+            // This test will fail until we support addtionalProperties with boolean value in Autorest.
+            it.skip('should get complicated polymorphic types', function (done) {
+                testClient.polymorphism.putComplicated(rawSalmon, function (err, result, req, res) {
+                    should.not.exist(err);
+                    console.dir(result, { depth: null });
+                    assert.deepEqual(result, rawSalmon);
                     done();
                 });
             });

@@ -42,10 +42,10 @@ export interface Basic {
    */
   name?: string;
   /**
-   * @member {string} [color] Possible values include: 'cyan', 'Magenta',
+   * @member {CMYKColors} [color] Possible values include: 'cyan', 'Magenta',
    * 'YELLOW', 'blacK'
    */
-  color?: string;
+  color?: CMYKColors;
 }
 
 /**
@@ -140,6 +140,23 @@ export interface Salmon extends Fish {
    * @member {boolean} [iswild]
    */
   iswild?: boolean;
+}
+
+/**
+ * @interface
+ * An interface representing SmartSalmon.
+ * @extends Salmon
+ */
+export interface SmartSalmon extends Salmon {
+  /**
+   * @member {{ [propertyName: string]: any }} [additionalProperties] Unmatched
+   * properties from the message are deserialized this collection
+   */
+  additionalProperties?: { [propertyName: string]: any };
+  /**
+   * @member {string} [collegeDegree]
+   */
+  collegeDegree?: string;
 }
 
 /**
@@ -485,4 +502,21 @@ export interface ReadonlypropertyPutValidOptionalParams extends RequestOptionsBa
    * @member {number} [size]
    */
   size?: number;
+}
+
+/**
+ * Defines values for CMYKColors.
+ * Possible values include: 'cyan', 'Magenta', 'YELLOW', 'blacK'
+ * There could be more values for this enum apart from the ones defined here.If
+ * you want to set a value that is not from the known values then you can do
+ * the following:
+ * let param: CMYKColors = <CMYKColors>"someUnknownValueThatWillStillBeValid";
+ * @readonly
+ * @enum {string}
+ */
+export enum CMYKColors {
+  CYAN = 'cyan',
+  MAGENTA = 'Magenta',
+  YELLOW = 'YELLOW',
+  BLACK = 'blacK',
 }

@@ -3,8 +3,6 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,6 +15,7 @@ using AutoRest.TypeScript.Model;
 using AutoRest.TypeScript.vanilla.Templates;
 using Newtonsoft.Json.Linq;
 using static AutoRest.Core.Utilities.DependencyInjection;
+using System.Collections.Generic;
 
 namespace AutoRest.TypeScript
 {
@@ -86,6 +85,14 @@ namespace AutoRest.TypeScript
                 // webpack.config.js
                 var webpackConfig = new WebpackConfig { Model = codeModel };
                 await Write(webpackConfig, Path.Combine("../", "webpack.config.js"));
+
+                // .npmignore
+                var npmIgnore = new NpmIgnore { Model = codeModel };
+                await Write(npmIgnore, Path.Combine("../", ".npmignore"));
+
+                //README.md
+                var readme = new ReadmeTemplate { Model = codeModel };
+                await Write(readme, Path.Combine("../", "README.md"));
             }
         }
 
