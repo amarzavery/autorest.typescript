@@ -2,20 +2,21 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 // 
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AutoRest.Core;
 using AutoRest.Core.Logging;
 using AutoRest.Core.Model;
+using AutoRest.Core.Model.XmsExtensions;
 using AutoRest.Core.Utilities;
 using AutoRest.TypeScript.Model;
 using AutoRest.TypeScript.vanilla.Templates;
 using Newtonsoft.Json.Linq;
-using static AutoRest.Core.Utilities.DependencyInjection;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using static AutoRest.Core.Utilities.DependencyInjection;
 
 namespace AutoRest.TypeScript
 {
@@ -102,7 +103,6 @@ namespace AutoRest.TypeScript
             {
                 return "undefined";
             }
-
             var indentString = new string(' ', 2);
             var totalIndent = string.Concat(Enumerable.Repeat(indentString, indent));
             var result = new StringBuilder();
@@ -117,7 +117,6 @@ namespace AutoRest.TypeScript
             {
                 return "undefined";
             }
-
             var indentString = new string(' ', 2);
             var totalIndent = string.Concat(Enumerable.Repeat(indentString, indent));
 
@@ -140,16 +139,16 @@ namespace AutoRest.TypeScript
             if (propertyInitializers.Count > 0)
             {
                 // special treatment for SubResource
-                if (type.ClassName.Split('.').Last() == "SubResource" && properties.Length == 1 && properties[0].SerializedName == "id")
-                {
-                    result.Append($"{obj.SelectToken("id").ToString(Newtonsoft.Json.Formatting.None)}");
-                }
-                else
-                {
+                //if (type.ClassName.Split('.').Last() == "SubResource" && properties.Length == 1 && properties[0].SerializedName == "id")
+                //{
+                //    result.Append($"{obj.SelectToken("id").ToString(Newtonsoft.Json.Formatting.None)}");
+                //}
+                //else
+                //{
                     result.AppendLine("{");
-                    result.AppendLine(totalIndent + string.Join(",\n", propertyInitializers));
-                    result.Append(totalIndent + "}");
-                }
+                    result.AppendLine($"{totalIndent}{string.Join(",\n", propertyInitializers)}");
+                    result.Append($"{totalIndent}}}");
+                //}
             }
             else
             {
@@ -196,44 +195,43 @@ namespace AutoRest.TypeScript
             ? CreateEnumInitializer(et, token, indent)
             : CodeNamer.Instance.EscapeDefaultValue(token.ToString(), type);
 
-        public override string GenerateSample(bool isolateSnippet, CodeModel cm, MethodGroup g, Method m, string exampleName, AutoRest.Core.Model.XmsExtensions.Example example)
+        public string GeneratePrefix(CodeModelTS codeModel)
+        {
+            var result = new IndentedStringBuilder("  ");
+            result.AppendLine("import * as msRestAzure from \"ms-rest-azure-js\";")
+                  .AppendLine("import * as msRest from \"ms-rest-js\";")
+                  .AppendLine("import * as msRestNodeAuth from \"ms-rest-nodeauth\";")
+                  .AppendLine($"import {{ {codeModel.Name}, {codeModel.ClientPrefix}Models }} from \"{codeModel.PackageName}\";")
+                  .AppendLine("")
+                  .AppendLine("const subscriptionId = \"012-334-555-656\";")
+                  .AppendLine("// Calling the async executeContext method")
+                  .AppendLine("executeContext().catch((err) => { console.log(err); });")
+                  .AppendLine("// Function Definition")
+                  .AppendLine("async function executeContext(): Promise<void> {").Indent()
+                  .AppendLine("// Authenticate.")
+                  .AppendLine("const credentials = await msRestNodeAuth.interactiveLogin();")
+                  .AppendLine("// Create client.")
+                  .AppendLine($"const client = new {codeModel.Name}(credentials, subscriptionId);");
+            return result.ToString();
+        }
+
+        public string GenerateCoreSample(CodeModelTS codeModel, MethodGroupTS group, MethodTS method, string exampleName, Example example)
         {
             var clientInstanceName = "client";
-            var codeModel = cm as CodeModelTS;
-            var method = m as MethodTS;
-            var group = g as MethodGroupTS;
-
-            var result = new StringBuilder();
-            // result.AppendLine("import * as msRestAzure from \"ms-rest-azure-js\";")
-            //       .AppendLine("import * as msRest from \"ms-rest-js\";")
-            //       .AppendFormat("import { {{0}, {1}Models, {1}Mappers} } from \"{0}\";", codeModel.Name, codeModel.PackageName)
-            //       .AppendLine();
-
-            if (isolateSnippet)
-            {
-                result.AppendLine("{");
-                result.AppendLine("// Client: " + cm.Name);
-                if (!g.Name.IsNullOrEmpty())
-                {
-                    result.AppendLine("// Group: " + g.Name);
-                }
-                result.AppendLine("// Method: " + m.Name);
-                result.AppendLine("// Example: " + exampleName);
-                result.AppendLine();
-            }
-
+            var result = new IndentedStringBuilder("  ");
             // parameter preparation
             var paramaters = new List<string>();
+            
             foreach (var formalParameter in method.LocalParameters)
             {
                 // parameter found in x-ms-examples?
                 var foundParameterInExample = example.Parameters.TryGetValue(formalParameter.SerializedName, out JToken token);
                 if (!foundParameterInExample && method.InputParameterTransformation?.Count() > 0)
                 {
-                    foreach(var transformation in method.InputParameterTransformation)
+                    foreach (var transformation in method.InputParameterTransformation)
                     {
                         // get the associated name of the parameter before it was flattened and try searching by that name in examples
-                        var lookupName = transformation.OutputParameter.SerializedName; 
+                        var lookupName = transformation.OutputParameter.SerializedName;
                         if (example.Parameters.TryGetValue(lookupName, out JToken lookupToken))
                         {
                             // select the value provided for the flattened parameter from the example
@@ -267,18 +265,87 @@ namespace AutoRest.TypeScript
                     return null;
                 }
             }
-            result.AppendLine();
+            result.AppendLine("");
 
             // call
             var returnTypeName = method.ReturnType.Body?.Name ?? method.ReturnType.Headers?.Name;
-            returnTypeName = returnTypeName != null ? returnTypeName.ToCamelCase() :  $"{m.Name}Result";
+            returnTypeName = returnTypeName != null ? returnTypeName.ToCamelCase() : $"{method.Name}Result";
 
-            result.AppendLine($"const {returnTypeName} = {clientInstanceName}{(g.Name.IsNullOrEmpty() ? "" : "." + g.NameForProperty)}.{m.Name}(" +
-                $"{string.Join(", ", paramaters.Select(param => param))});");
+            result.AppendLine($"const {returnTypeName} = await {clientInstanceName}" +
+                              $"{(group.Name.IsNullOrEmpty() ? "" : "." + group.NameForProperty)}.{method.Name}(" +
+                              $"{string.Join(", ", paramaters.Select(param => param))});")
+                  .AppendLine($"console.log({returnTypeName});");
 
-            if (isolateSnippet)
+            return result.ToString();
+        }
+
+        public override string GenerateSample(bool isolateSnippet, CodeModel cm, MethodGroup g, Method m, string exampleName, Example example)
+        {
+            var codeModel = cm as CodeModelTS;
+            var method = m as MethodTS;
+            var group = g as MethodGroupTS;
+            var groupName = group.Name.IsNullOrEmpty() ? "" : group.Name.ToPascalCase();
+            var sampleName = $"{groupName}{method.Name.ToPascalCase()}Sample";
+
+            codeModel.PackageName = Settings.Instance.PackageName;
+            codeModel.PackageVersion = Settings.Instance.PackageVersion;
+            var result = new IndentedStringBuilder("  ");
+            result.AppendLine("/**");
+
+            if (!string.IsNullOrEmpty(example.Title))
             {
-                result.AppendLine("}");
+                result.AppendLine($"#### Title: {example.Title}").AppendLine("");
+            }
+
+            if (!string.IsNullOrEmpty(example.Description))
+            {
+                result.AppendLine($"#### Description:\n{example.Description}").AppendLine("");
+            }
+
+            result.AppendLine("@example")
+                  .AppendLine("```typescript")
+                  .AppendLine("")
+                  .AppendLine(GeneratePrefix(codeModel))
+                  .Indent()
+                  .AppendLine(GenerateCoreSample(codeModel, group, method, exampleName, example).TrimEnd('\n'))
+                  .Outdent()
+                  .AppendLine("}")
+                  .AppendLine($"```")
+                  .AppendLine($" */")
+                  .AppendLine($"var {sampleName};");
+            var resultAsString = result.ToString().Split("\n");
+            for (int i = 1; i < resultAsString.Length-3; i++)
+            {
+                resultAsString[i] = $" * {resultAsString[i]}";
+            }
+
+            return string.Join("\n", resultAsString);
+        }
+
+        public override string GenerateSampleWithPrefix(bool isolateSnippet, CodeModel cm, MethodGroup g, Method m, string exampleName, Example example, bool applyPrefix, bool isLast)
+        {
+            var codeModel = cm as CodeModelTS;
+            var method = m as MethodTS;
+            var group = g as MethodGroupTS;
+
+            codeModel.PackageName = Settings.Instance.PackageName;
+            codeModel.PackageVersion = Settings.Instance.PackageVersion;
+
+            var result = new IndentedStringBuilder("  ");
+            if (applyPrefix)
+            {
+                result.AppendLine(GeneratePrefix(codeModel));
+            }
+            //Always indent as we need to start inside the execute function
+            result.Indent()
+                  .AppendLine("{")
+                  .Indent()
+                  .AppendLine(GenerateCoreSample(codeModel, group, method, exampleName, example).TrimEnd())
+                  .Outdent()
+                  .AppendLine("}");
+            if (isLast)
+            {
+                result.Outdent().AppendLine("}");
             }
             return result.ToString();
         }

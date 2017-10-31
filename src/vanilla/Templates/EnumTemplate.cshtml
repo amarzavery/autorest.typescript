@@ -11,9 +11,9 @@
 }
 @if (Model.ModelAsString)
 {
-@:@(WrapComment(" * ", "There could be more values for this enum apart from the ones defined here." +
-        "If you want to set a value that is not from the known values then you can do the following:\n" +
-        "let param: " + Model.Name + " = <" + Model.Name + ">\"someUnknownValueThatWillStillBeValid\";"))
+@:@(WrapComment(" * ", "@note There could be more values for this enum apart from the ones defined here. " +
+        "If you want to set a value that is not from the known values then you can cast it like this:\n" +
+        "```typescript\nlet param = <" + Model.Name + ">\"someUnknownValueThatWillStillBeValid\";\n```"))
 }
  * @@readonly
  * @@enum {@CodeNamer.Instance.CamelCase(Model.UnderlyingType.Name)}
